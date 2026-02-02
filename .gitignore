@@ -12,7 +12,7 @@ media/
 
 # Static files (will be collected on deployment)
 /staticfiles/
-/static/
+# Note: /static/ is now included for deployment
 
 # Virtual environment
 venv/
