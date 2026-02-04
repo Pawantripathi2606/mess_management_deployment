@@ -135,21 +135,6 @@ class Message(models.Model):
         ordering = ['-created_at']
 
 
-class MessSettings(models.Model):
-    """Global mess settings"""
-    max_users = models.IntegerField(default=50)
-    current_month_year = models.CharField(max_length=7, default=datetime.now().strftime('%Y-%m'))
-    upi_id = models.CharField(max_length=100, blank=True, null=True)
-    upi_qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        return f"Mess Settings - {self.current_month_year}"
-    
-    class Meta:
-        verbose_name = 'Mess Settings'
-        verbose_name_plural = 'Mess Settings'
-
 
 class MealPlan(models.Model):
     """Daily meal plan"""
