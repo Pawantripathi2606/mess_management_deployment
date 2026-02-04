@@ -49,3 +49,6 @@ wheels/
 venv/
 env/
 ENV/
+
+# Test outputs
+test_*.txt
