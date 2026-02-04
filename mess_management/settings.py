@@ -91,12 +91,26 @@ WSGI_APPLICATION = 'mess_management.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database Configuration - PostgreSQL for production, SQLite for development
+import dj_database_url
+
+if os.environ.get('DATABASE_URL'):
+    # Use PostgreSQL in production (when DATABASE_URL is set)
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,  # Connection pooling
+            conn_health_checks=True,  # Health checks
+        )
     }
-}
+else:
+    # Use SQLite for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
