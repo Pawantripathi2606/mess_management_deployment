@@ -23,15 +23,14 @@ class UserRegistrationForm(UserCreationForm):
         user.last_name = self.cleaned_data['last_name']
         user.email = self.cleaned_data['email']
         
+        # Store profile data as temporary attributes for the signal handler
+        user._profile_role = self.cleaned_data['role']
+        user._profile_phone = self.cleaned_data['phone']
+        user._profile_room_no = self.cleaned_data['room_no']
+        
         if commit:
             user.save()
-            # Create user profile
-            UserProfile.objects.create(
-                user=user,
-                role=self.cleaned_data['role'],
-                phone=self.cleaned_data['phone'],
-                room_no=self.cleaned_data['room_no']
-            )
+            # Signal handler will create the UserProfile automatically
         return user
 
 

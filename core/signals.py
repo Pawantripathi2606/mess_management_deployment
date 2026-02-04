@@ -16,11 +16,18 @@ def create_user_profile(sender, instance, created, **kwargs):
     This handles both regular signup and admin-created users
     """
     if created:
-        # Check if profile already exists (in case of race condition)
-        if not hasattr(instance, 'profile'):
+        # Check if profile already exists (using database query for reliability)
+        if not UserProfile.objects.filter(user=instance).exists():
+            # Check for temporary profile data from forms
+            role = getattr(instance, '_profile_role', 'user')
+            phone = getattr(instance, '_profile_phone', '')
+            room_no = getattr(instance, '_profile_room_no', '')
+            
             UserProfile.objects.create(
                 user=instance,
-                role='user',  # Default role for all new users
+                role=role,
+                phone=phone,
+                room_no=room_no,
                 dark_mode=False
             )
 
@@ -31,8 +38,8 @@ def create_profile_for_social_user(sender, request, user, **kwargs):
     Ensure UserProfile is created for social authentication users
     This is a fallback for allauth social signups
     """
-    # Check if profile exists
-    if not hasattr(user, 'profile'):
+    # Check if profile exists (using database query for reliability)
+    if not UserProfile.objects.filter(user=user).exists():
         UserProfile.objects.create(
             user=user,
             role='user',  # Default role for social auth users
