@@ -218,7 +218,10 @@
             {% endfor %}
             {% endif %}
 
-            <!-- Google OAuth Button -->
+            <!-- Google OAuth Button (only show if configured) -->
+            {% load socialaccount %}
+            {% get_providers as socialaccount_providers %}
+            {% if socialaccount_providers %}
             <a href="{% provider_login_url 'google' %}" class="google-btn">
                 <svg width="24" height="24" viewBox="0 0 24 24">
                     <path fill="#4285F4"
@@ -236,6 +239,7 @@
             <div class="divider">
                 <span>or continue with email</span>
             </div>
+            {% endif %}
 
             {% if form.non_field_errors %}
             <div class="alert alert-danger">{{ form.non_field_errors }}</div>
