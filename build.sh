@@ -32,17 +32,21 @@ else:
     print('ℹ️ Admin user already exists')
     admin = User.objects.get(username='admin')
 
-# Create or get admin profile
-if not hasattr(admin, 'userprofile'):
-    print('Creating admin profile...')
+# Update or create admin profile (signal should have created it)
+try:
+    profile = admin.userprofile
+    profile.phone = '1234567890'
+    profile.role = 'admin'
+    profile.save()
+    print('✅ Admin profile updated')
+except UserProfile.DoesNotExist:
+    # Fallback: create profile if signal didn't
     UserProfile.objects.create(
         user=admin,
         phone='1234567890',
         role='admin'
     )
     print('✅ Admin profile created')
-else:
-    print('ℹ️ Admin profile already exists')
 
 # Configure UPI payment settings
 print('Setting up UPI payment details...')
@@ -66,17 +70,27 @@ if not User.objects.filter(username='testuser').exists():
         first_name='Test',
         last_name='User'
     )
-    UserProfile.objects.create(
-        user=test_user,
-        phone='9999999999',
-        room_no='101',
-        role='user'
-    )
-    print('✅ Test user created: testuser / test123')
+    # Signal will create profile, just update it
+    try:
+        profile = test_user.userprofile
+        profile.phone = '9999999999'
+        profile.room_no = '101'
+        profile.role = 'user'
+        profile.save()
+        print('✅ Test user created: testuser / test123')
+    except UserProfile.DoesNotExist:
+        # Fallback if signal didn't work
+        UserProfile.objects.create(
+            user=test_user,
+            phone='9999999999',
+            room_no='101',
+            role='user'
+        )
+        print('✅ Test user created: testuser / test123')
 else:
     print('ℹ️ Test user already exists')
 
-# Verify
+# Verify admin
 print(f'Username: {admin.username}')
 print(f'Email: {admin.email}')
 print(f'Is superuser: {admin.is_superuser}')
