@@ -6,6 +6,7 @@ gunicorn==21.2.0
 whitenoise==6.6.0
 openpyxl==3.1.2
 django-allauth==65.14.0
+requests==2.31.0
 
 # Production Database Support (PostgreSQL)
 psycopg2-binary==2.9.9
