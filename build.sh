@@ -54,12 +54,12 @@ else:
 print('Setting up UPI payment details...')
 settings, created = MessSettings.objects.get_or_create(
     pk=1,
-    defaults={'max_users': 50}
+    defaults={'mess_name': 'Mess Management System'}
 )
-settings.upi_id = 'pawantripathi802@ybl'
+settings.admin_upi_id = 'pawantripathi802@ybl'
 settings.upi_qr_code = 'upi_qr/phonepe_qr.jpg'
 settings.save()
-print(f'✅ UPI ID: {settings.upi_id}')
+print(f'✅ UPI ID: {settings.admin_upi_id}')
 print(f'✅ QR Code: {settings.upi_qr_code}')
 
 # Create test user
