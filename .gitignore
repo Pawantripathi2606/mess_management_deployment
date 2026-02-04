@@ -1,4 +1,4 @@
-# Django specific
+# Django
 *.log
 *.pot
 *.pyc
@@ -6,31 +6,23 @@ __pycache__/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-
-# Media files (uploaded content)
 media/
+staticfiles/
 
-# Static files (will be collected on deployment)
-/staticfiles/
-# Note: /static/ is now included for deployment
+# Environment variables
+.env
+.env.local
 
-# Virtual environment
-venv/
-env/
-ENV/
-.venv
-
-# IDE specific
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS specific
+# OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
 # Python
 *.py[cod]
@@ -53,12 +45,7 @@ wheels/
 .installed.cfg
 *.egg
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Misc
-*.bak
-landing_page_test.html
-test_implementation.py
+# Virtual environments
+venv/
+env/
+ENV/

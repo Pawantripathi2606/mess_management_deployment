@@ -43,7 +43,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Required for django-allauth
+    
+    # Our app MUST come before allauth to override templates
     'core',  # Our mess management app
+    
+    # Django-allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 ]
 
 MIDDLEWARE = [
@@ -55,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # Required for django-allauth
 ]
 
 ROOT_URLCONF = 'mess_management.urls'
@@ -67,7 +77,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',
+                'django.template.context_processors.request',  # Required by allauth
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -139,8 +149,76 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Authentication
-LOGIN_URL = 'login'
+# Django Sites Framework (Required for django-allauth)
+SITE_ID = 1
+
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    # Needed to login by username in Django admin, regardless of allauth
+    'django.contrib.auth.backends.ModelBackend',
+    # allauth specific authentication methods, such as login by e-mail
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Authentication URLs
+LOGIN_URL = 'account_login'  # Using allauth login URL
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'role_selection'
 
+# Django-allauth Configuration
+ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Allow login with email
+ACCOUNT_EMAIL_REQUIRED = True  # Email is required for signup
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # Email verification is optional
+ACCOUNT_USERNAME_REQUIRED = False  # Username not required
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True  # Confirm password on signup
+ACCOUNT_SESSION_REMEMBER = True  # Remember user session
+ACCOUNT_UNIQUE_EMAIL = True  # Enforce unique emails
+
+# Social Account Configuration
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Automatically create account on social login
+SOCIALACCOUNT_QUERY_EMAIL = True  # Request email from social provider
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'optional'  # Don't require email verification for social accounts
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+    }
+}
+
+# Email Configuration - Gmail SMTP for Real Email Sending
+# Use environment variables for production
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+# Use environment variables for sensitive credentials
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'pawantripathi802@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')  # Set via environment variable
+
+DEFAULT_FROM_EMAIL = f'Mess Manager <{EMAIL_HOST_USER}>'
+SERVER_EMAIL = EMAIL_HOST_USER
+
+# Password Reset Settings
+PASSWORD_RESET_TIMEOUT = 3600  # 1 hour (in seconds)
+
+# INSTRUCTIONS TO SET EMAIL PASSWORD:
+# For local development, create a .env file (NOT committed to Git) with:
+# EMAIL_HOST_PASSWORD=your-16-char-app-password
+# 
+# For production (Render), set environment variable in dashboard:
+# EMAIL_HOST_PASSWORD=your-16-char-app-password
+#
+# To get Gmail App Password:
+# 1. Go to: https://myaccount.google.com/security
+# 2. Enable "2-Step Verification" if not already enabled
+# 3. Click "App passwords" (under 2-Step Verification)
+# 4. Select: Mail + Other (custom name: "Mess Manager")
+# 5. Copy the 16-character password (remove spaces!)
+# 6. Set it as environment variable (never commit to Git!)

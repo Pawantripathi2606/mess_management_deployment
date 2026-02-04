@@ -43,7 +43,7 @@
     </div>
 </div>
 
-<div class="dashboard-content">
+<div class="dashboard-content dashboard-grid">
     <div class="card">
         <div class="card-header">
             <h2>Quick Actions</h2>
@@ -78,7 +78,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card card-full-width">
         <div class="card-header">
             <h2>Recent Payments</h2>
             <a href="{% url 'payment_list' %}" class="view-all">View All →</a>
@@ -115,10 +115,34 @@
     </div>
 
     {% if pending_messages > 0 %}
-    <div class="alert alert-warning">
+    <div class="alert alert-warning card-full-width">
         <strong>{{ pending_messages }}</strong> pending message(s) from users.
         <a href="{% url 'admin_messages' %}" class="alert-link">View Messages →</a>
     </div>
     {% endif %}
 </div>
+
+<style>
+    /* Dashboard specific responsive styles */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .dashboard-grid .card-full-width {
+            grid-column: 1 / -1;
+        }
+    }
+
+    /* Responsive alert in grid */
+    .dashboard-grid .alert {
+        margin-bottom: 0;
+    }
+</style>
 {% endblock %}

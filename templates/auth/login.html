@@ -6,6 +6,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Mess Management</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon.png' %}?v=3.0">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon.png' %}?v=3.0">
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.png' %}?v=3.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon.png' %}?v=3.0">
+    <link rel="manifest" href="{% static 'site.webmanifest' %}">
+
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -45,6 +53,7 @@
             </form>
 
             <div class="auth-footer">
+                <a href="{% url 'password_reset' %}" style="margin-right: 20px;">🔒 Forgot Password?</a>
                 <a href="{% url 'role_selection' %}" class="back-link">← Back to Home</a>
             </div>
         </div>

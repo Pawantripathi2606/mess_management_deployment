@@ -15,7 +15,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from io import BytesIO
 
-from .models import UserProfile, Payment, Grocery, FixedExpense, Message, MessSettings, MealPlan
+from .models import (UserProfile, Payment, Grocery, FixedExpense, Message,
+                     MealPlan, ActivityLog, UserSettings, MessSettings)
 from .forms import (UserRegistrationForm, UserEditForm, PaymentForm, UserPaymentForm,
                     GroceryForm, FixedExpenseForm, MessageForm, AdminReplyForm)
 from .meal_forms import MealPlanForm
@@ -63,6 +64,42 @@ def user_logout(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
     return redirect('role_selection')
+
+
+def admin_login(request):
+    """Admin-only login view - NO Google OAuth"""
+    # Disable CSRF for this view if needed, or ensure template has token
+    if request.user.is_authenticated:
+        # If already logged in, check if admin
+        if hasattr(request.user, 'profile') and request.user.profile.role == 'admin':
+            return redirect('admin_dashboard')
+        else:
+            messages.warning(request, 'You need admin privileges to access this page.')
+            return redirect('dashboard')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        if not username or not password:
+            messages.error(request, 'Please provide both username and password.')
+            return render(request, 'admin/admin_login.html')
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            # Check if user is admin
+            if hasattr(user, 'profile') and user.profile.role == 'admin':
+                login(request, user)
+                messages.success(request, f'Welcome back, {user.username}!')
+                return redirect('admin_dashboard')
+            else:
+                messages.error(request, 'Admin access only. Please use the user login page.')
+                return redirect('account_login')
+        else:
+            messages.error(request, 'Invalid admin credentials.')
+    
+    return render(request, 'admin/admin_login.html')
 
 
 @login_required
@@ -438,7 +475,7 @@ def send_payment_reminder(request, payment_id):
     # Get UPI settings
     try:
         mess_settings = MessSettings.objects.first()
-        upi_id = mess_settings.upi_id if mess_settings and mess_settings.upi_id else "Not configured"
+        upi_id = mess_settings.admin_upi_id if mess_settings and mess_settings.admin_upi_id else "Not configured"
     except MessSettings.DoesNotExist:
         upi_id = "Not configured"
     
@@ -964,3 +1001,212 @@ def transparent_data(request):
     }
     
     return render(request, 'user/transparent_data.html', context)
+
+
+# ==================== Theme Preference ====================
+
+@login_required
+def save_theme_preference(request):
+    """Save user's dark mode preference via AJAX"""
+    if request.method == 'POST':
+        try:
+            import json
+            data = json.loads(request.body)
+            dark_mode = data.get('dark_mode', False)
+            
+            # Update user profile
+            profile = request.user.profile
+            profile.dark_mode = dark_mode
+            profile.save()
+            
+            return JsonResponse({'success': True, 'message': 'Theme preference saved'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+
+# ==================== Profile Settings ====================
+
+@login_required
+def profile_settings(request):
+    """User profile settings and picture upload"""
+    from .forms import ProfileSettingsForm
+    
+    profile = request.user.profile
+    
+    if request.method == 'POST':
+        form = ProfileSettingsForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            # Update profile
+            profile = form.save()
+            
+            # Update user fields
+            user = request.user
+            user.first_name = form.cleaned_data['first_name']
+            user.last_name = form.cleaned_data['last_name']
+            user.email = form.cleaned_data['email']
+            user.save()
+            
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('profile_settings')
+    else:
+        form = ProfileSettingsForm(instance=profile)
+    
+    context = {'form': form, 'profile': profile}
+    return render(request, 'user/profile_settings.html', context)
+
+
+# ==================== Excel Export Views ====================
+
+@admin_required
+def export_payments_excel(request):
+    """Export payments to Excel"""
+    from .excel_export import export_payments_to_excel
+    
+    month_filter = request.GET.get('month', datetime.now().strftime('%Y-%m'))
+    payments = Payment.objects.select_related('user').filter(month_year=month_filter).order_by('-created_at')
+    
+    return export_payments_to_excel(payments, month_filter)
+
+
+@admin_required
+def export_groceries_excel(request):
+    """Export groceries to Excel"""
+    from .excel_export import export_groceries_to_excel
+    
+    month_filter = request.GET.get('month', datetime.now().strftime('%Y-%m'))
+    groceries = Grocery.objects.filter(month_year=month_filter).order_by('-purchase_date')
+    
+    return export_groceries_to_excel(groceries, month_filter)
+
+
+@admin_required
+def export_monthly_report_excel(request):
+    """Export comprehensive monthly report to Excel"""
+    from .excel_export import export_monthly_report_to_excel
+    
+    month_year = request.GET.get('month', datetime.now().strftime('%Y-%m'))
+    
+    payments = Payment.objects.filter(month_year=month_year).select_related('user')
+    groceries = Grocery.objects.filter(month_year=month_year)
+    
+    try:
+        fixed_expense = FixedExpense.objects.get(month_year=month_year)
+    except FixedExpense.DoesNotExist:
+        fixed_expense = None
+    
+    return export_monthly_report_to_excel(month_year, payments, groceries, fixed_expense)
+
+
+# ==================== Settings Views ====================
+
+@login_required
+def user_settings(request):
+    """User settings page with all preference forms"""
+    from .forms import (UserNotificationSettingsForm, UserPrivacySettingsForm,
+                        UserDisplaySettingsForm, UserPaymentSettingsForm)
+    
+    # Get or create user settings
+    user_settings_obj, created = UserSettings.objects.get_or_create(user=request.user)
+    
+    # Get mess settings for displaying admin UPI details
+    mess_settings = MessSettings.get_settings()
+    
+    if request.method == 'POST':
+        section = request.POST.get('section')
+        
+        if section == 'notifications':
+            form = UserNotificationSettingsForm(request.POST, instance=user_settings_obj)
+        elif section == 'privacy':
+            form = UserPrivacySettingsForm(request.POST, instance=user_settings_obj)
+        elif section == 'display':
+            form = UserDisplaySettingsForm(request.POST, instance=user_settings_obj)
+        elif section == 'payment':
+            form = UserPaymentSettingsForm(request.POST, instance=user_settings_obj)
+        else:
+            messages.error(request, 'Invalid section')
+            return redirect('user_settings')
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'{section.capitalize()} settings saved successfully!')
+            return redirect('user_settings')
+        else:
+            messages.error(request, 'Please fix the errors below')
+    
+    context = {
+        'user_settings': user_settings_obj,
+        'mess_settings': mess_settings,
+        'notification_form': UserNotificationSettingsForm(instance=user_settings_obj),
+        'privacy_form': UserPrivacySettingsForm(instance=user_settings_obj),
+        'display_form': UserDisplaySettingsForm(instance=user_settings_obj),
+        'payment_form': UserPaymentSettingsForm(instance=user_settings_obj),
+    }
+    return render(request, 'user/settings.html', context)
+
+
+@admin_required
+def admin_settings(request):
+    """Admin settings page with all configuration forms"""
+    from .forms import (MessGeneralSettingsForm, PaymentConfigurationForm,
+                        UserManagementSettingsForm, ReminderSettingsForm,
+                        ReportSettingsForm, SecuritySettingsForm,
+                        DisplaySettingsForm, SystemSettingsForm)
+    
+    # Get or create mess settings (singleton)
+    mess_settings = MessSettings.get_settings()
+    
+    if request.method == 'POST':
+        section = request.POST.get('section')
+        
+        forms_map = {
+            'general': MessGeneralSettingsForm,
+            'payment': PaymentConfigurationForm,
+            'users': UserManagementSettingsForm,
+            'reminders': ReminderSettingsForm,
+            'reports': ReportSettingsForm,
+            'security': SecuritySettingsForm,
+            'display': DisplaySettingsForm,
+            'system': SystemSettingsForm,
+        }
+        
+        form_class = forms_map.get(section)
+        if form_class:
+            form = form_class(request.POST, request.FILES, instance=mess_settings)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f'{section.capitalize()} settings saved successfully!')
+                return redirect('admin_settings')
+            else:
+                messages.error(request, 'Please fix the errors below')
+        else:
+            messages.error(request, 'Invalid section')
+            return redirect('admin_settings')
+    
+    context = {
+        'mess_settings': mess_settings,
+        'general_form': MessGeneralSettingsForm(instance=mess_settings),
+        'payment_form': PaymentConfigurationForm(instance=mess_settings),
+        'users_form': UserManagementSettingsForm(instance=mess_settings),
+        'reminders_form': ReminderSettingsForm(instance=mess_settings),
+        'reports_form': ReportSettingsForm(instance=mess_settings),
+        'security_form': SecuritySettingsForm(instance=mess_settings),
+        'display_form': DisplaySettingsForm(instance=mess_settings),
+        'system_form': SystemSettingsForm(instance=mess_settings),
+    }
+    return render(request, 'admin/settings.html', context)
+
+
+# ==================== Custom Password Reset ====================
+
+def custom_password_reset(request):
+    """
+    Custom password reset view that sends different emails based on user existence
+    - If user exists: Send password reset link
+    - If user doesn't exist: Send registration instructions
+    """
+    from .custom_auth_views import CustomPasswordResetView
+    
+    view = CustomPasswordResetView.as_view(template_name='registration/password_reset_form.html')
+    return view(request)

@@ -1,16 +1,19 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
+from django.views.generic.base import RedirectView
 from . import views
 
 urlpatterns = [
     # Landing and Authentication
     path('', views.landing_page, name='landing_page'),
     path('start/', views.role_selection, name='role_selection'),
-    path('login/', views.user_login, name='login'),
-    path('logout/', views.user_logout, name='logout'),
+    # Redirect old login URL to allauth login (with Google OAuth)
+    path('login/', RedirectView.as_view(pattern_name='account_login', permanent=False), name='login'),
+    path('logout/', RedirectView.as_view(pattern_name='account_logout', permanent=False), name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     
     # Admin URLs (using 'manage' to avoid conflict with Django admin)
+    path('manage/login/', views.admin_login, name='admin_login'),  # Admin-only login (no Google OAuth)
     path('manage/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     
     # User Management
@@ -61,4 +64,21 @@ urlpatterns = [
     path('user/meals/', views.user_meal_calendar, name='user_meal_calendar'),
     path('user/receipt/', views.user_receipt, name='user_receipt'),
     path('user/data/', views.transparent_data, name='transparent_data'),
+    path('user/save-theme-preference/', views.save_theme_preference, name='save_theme_preference'),
+    path('user/profile-settings/', views.profile_settings, name='profile_settings'),
+    
+    # Excel Exports
+    path('manage/export/payments/', views.export_payments_excel, name='export_payments_excel'),
+    path('manage/export/groceries/', views.export_groceries_excel, name='export_groceries_excel'),
+    path('manage/export/monthly-report/', views.export_monthly_report_excel, name='export_monthly_report_excel'),
+    
+    # Password Reset - Custom view to handle registered/unregistered users
+    path('password-reset/', views.custom_password_reset, name='password_reset'),
+    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'), name='password_reset_done'),
+    path('password-reset-confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html'), name='password_reset_confirm'),
+    path('password-reset-complete/', auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'), name='password_reset_complete'),
+    
+    # Settings
+    path('user/settings/', views.user_settings, name='user_settings'),
+    path('manage/settings/', views.admin_settings, name='admin_settings'),
 ]

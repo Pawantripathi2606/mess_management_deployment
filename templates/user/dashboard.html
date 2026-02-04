@@ -34,7 +34,7 @@
     </div>
 </div>
 
-<div class="dashboard-content">
+<div class="dashboard-content dashboard-grid">
     <div class="card">
         <div class="card-header">
             <h2>Quick Actions</h2>
@@ -98,7 +98,7 @@
     {% endif %}
 
     {% if recent_messages %}
-    <div class="card">
+    <div class="card card-full-width">
         <div class="card-header">
             <h2>Recent Messages & Notifications</h2>
         </div>
@@ -124,4 +124,39 @@
     </div>
     {% endif %}
 </div>
+
+<style>
+    /* Dashboard specific responsive styles */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .dashboard-grid .card-full-width {
+            grid-column: 1 / -1;
+        }
+    }
+
+    .admin-reply {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(102, 126, 234, 0.1);
+        border-left: 3px solid var(--primary);
+        border-radius: 4px;
+    }
+
+    .admin-reply strong {
+        color: var(--primary);
+    }
+
+    .admin-reply p {
+        margin: 0.5rem 0;
+    }
+</style>
 {% endblock %}
